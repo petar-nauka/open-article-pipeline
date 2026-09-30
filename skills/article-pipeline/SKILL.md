@@ -11,7 +11,7 @@ Turn one request into a defensible article. Coordinate `article-research`, `arti
 
 Identify the deliverable, genre, audience, language, approximate length, publication channel, source boundary, and requested extras. Use sensible neutral defaults only for missing choices. Preserve the user's specified format and source restrictions. Read [modes](references/modes.md) to choose proportionate evidence and review depth. An article that contains material legal, medical, financial, safety, reputational, or fast-changing claims needs stronger current evidence.
 
-Choose **source-only**, **researched**, or **opinion** evidence handling. Source-only means no added external facts; checking the supplied material's claims against outside evidence is a separate request or necessary risk escalation, and must be disclosed. Opinion permits a stated viewpoint but does not exempt its factual premises from checking.
+Choose **source-only**, **researched**, or **opinion** evidence handling. Source-only means no added external facts; checking the supplied material's claims against outside evidence is a separate scope that must be explicitly authorized. If material risk calls for broader review, state the need while honoring the user's source and tool restrictions. Opinion permits a stated viewpoint but does not exempt its factual premises from checking.
 
 ## 2. Build evidence before writing
 
@@ -19,9 +19,9 @@ Use `article-research` to inspect sources and capture the material claims in a l
 
 ## 3. Draft, challenge, repair
 
-Use `article-writer` to draft within the evidence boundary. Use `article-verifier` on the draft and source ledger. Give a separate reviewer a clean brief when one is available and authorized: draft, ledger, date, and mode only. The reviewer must inspect originals and search for contrary or later evidence; the ledger is a map, not proof. If no independent reviewer exists, perform a distinct adversarial pass and label it as a self-review. Do not imply independence.
+Use `article-writer` to draft within the evidence boundary. Use `article-verifier` on the draft and source ledger. Give a separate reviewer a clean brief when one is available and authorized: draft, ledger, access to supplied originals, review date and mode, evidence boundary, verification scope, and explicit user restrictions. Exclude the author's rationale and expected verdict. The reviewer must inspect originals and seek contrary or later evidence within the permitted scope; the ledger is a map, not proof. For source-only work, check fidelity to the supplied corpus unless external verification is explicitly authorized. If no independent reviewer exists, perform a distinct adversarial pass and label it as a self-review. Do not imply independence.
 
-Use `article-editor` to resolve verified defects, improve structure and language, and prepare the final version. Recheck changed or newly added factual claims. Repeat research only when a correction changes the central conclusion.
+Use `article-editor` to resolve verified defects, improve structure and language, and prepare the final version. Recheck changed or newly added factual claims. Use targeted follow-up research within the evidence boundary for any affected claim that needs additional support. Repeat the full research stage only when a correction changes the central conclusion.
 
 ## 4. Decide readiness and deliver
 

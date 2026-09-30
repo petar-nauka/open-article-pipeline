@@ -2,6 +2,8 @@
 
 - Review date:
 - Scope and mode:
+- Evidence boundary and permitted sources:
+- User source and tool restrictions:
 - Reviewer: independent / self-review
 - Verdict: PASS / PASS WITH FIXES / BLOCKED
 - Coverage and access limits:

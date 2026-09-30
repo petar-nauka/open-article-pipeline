@@ -16,6 +16,9 @@ PLACEHOLDER = re.compile(
     r"\[(?:source|citation needed|insert[^]]*|източник|за проверка|автор|дата)\]",
     re.IGNORECASE,
 )
+INLINE_LINK_END = re.compile(
+    r"(?:[ \t]+(?:\"(?:\\.|[^\"\\\r\n])*\"|'(?:\\.|[^'\\\r\n])*'))?[ \t]*\)"
+)
 VERDICT = re.compile(r"(?im)^\s*(?:-\s*)?Verdict:\s*(PASS WITH FIXES|PASS|BLOCKED)\s*$")
 SOURCE_HEADERS = ["ID", "Title", "URL or file", "Published or updated", "Accessed", "Role and limitation"]
 CLAIM_HEADERS = [
@@ -23,6 +26,65 @@ CLAIM_HEADERS = [
     "Status date", "Last checked", "Permitted wording", "Limits",
 ]
 FILES = ("brief.md", "evidence-ledger.md", "draft.md", "verification-report.md", "final.md")
+
+
+def has_inline_destination(text: str, start: int) -> bool:
+    """Recognize a complete inline target, including balanced URL parentheses."""
+    if text[start:start + 1] != "(":
+        return False
+    cursor = start + 1
+    if text[cursor:cursor + 1] == "<":
+        end = text.find(">", cursor + 1)
+        if end <= cursor + 1 or any(char in text[cursor:end] for char in "\r\n"):
+            return False
+        cursor = end + 1
+    else:
+        depth = 0
+        while cursor < len(text) and not text[cursor].isspace():
+            char = text[cursor]
+            if char == "\\":
+                cursor += 1
+                if cursor == len(text) or text[cursor].isspace():
+                    return False
+            elif char == "(":
+                depth += 1
+            elif char == ")":
+                if depth == 0:
+                    return cursor > start + 1
+                depth -= 1
+            cursor += 1
+        if cursor == start + 1 or depth:
+            return False
+    return INLINE_LINK_END.match(text, cursor) is not None
+
+
+def has_unfinished_placeholder(text: str) -> bool:
+    for match in PLACEHOLDER.finditer(text):
+        if match.group().casefold() in ("[source]", "[източник]") and has_inline_destination(text, match.end()):
+            continue
+        return True
+    return False
+
+
+def split_table_row(line: str) -> list[str]:
+    """Split template rows on unescaped pipes, keeping cell text intact."""
+    line = line.strip()
+    cells = []
+    cell = []
+    escaped = False
+    for char in line:
+        if char == "|" and not escaped:
+            cells.append("".join(cell).strip())
+            cell = []
+        else:
+            cell.append(char)
+        escaped = char == "\\" and not escaped
+    cells.append("".join(cell).strip())
+    if line.startswith("|"):
+        cells.pop(0)
+    if line.endswith("|") and cells and not cells[-1]:
+        cells.pop()
+    return cells
 
 
 def table_rows(document: str, heading: str, headers: list[str], errors: list[str]) -> list[list[str]]:
@@ -35,16 +97,17 @@ def table_rows(document: str, heading: str, headers: list[str], errors: list[str
     if len(lines) < 3:
         errors.append(f"Evidence ledger: '{heading}' needs a header, separator, and data row")
         return []
-    actual_headers = [cell.strip() for cell in lines[0].strip("|").split("|")]
+    actual_headers = split_table_row(lines[0])
     if actual_headers != headers:
         errors.append(f"Evidence ledger: unexpected '{heading}' table headers")
         return []
-    if not all(re.fullmatch(r":?-{3,}:?", cell.strip()) for cell in lines[1].strip("|").split("|")):
+    separators = split_table_row(lines[1])
+    if len(separators) != len(headers) or not all(re.fullmatch(r":?-{3,}:?", cell) for cell in separators):
         errors.append(f"Evidence ledger: invalid '{heading}' table separator")
         return []
     rows = []
     for line_number, line in enumerate(lines[2:], start=1):
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        cells = split_table_row(line)
         if len(cells) != len(headers):
             errors.append(f"Evidence ledger: '{heading}' row {line_number} has {len(cells)} cells, expected {len(headers)}")
             continue
@@ -110,7 +173,7 @@ def validate(run_dir: Path) -> tuple[list[str], list[str]]:
         errors.append("Final article is empty")
     if CLAIM_MARKER.search(final):
         errors.append("Final article contains internal claim markers")
-    if PLACEHOLDER.search(final):
+    if has_unfinished_placeholder(final):
         errors.append("Final article contains an unfinished placeholder")
 
     report = documents["verification-report.md"]

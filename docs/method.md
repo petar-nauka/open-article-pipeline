@@ -13,7 +13,9 @@ A source list says what was read. The ledger records which claim a source suppor
 
 ## Why separate writing and checking?
 
-The author can become attached to an angle. A separate reviewer with a clean brief can find issues the author overlooks. When an independent reviewer is unavailable, a dedicated adversarial pass is still useful, but it should be described as a self-review. An automated validator never substitutes for inspecting evidence.
+The author can become attached to an angle. A separate reviewer with a clean brief can find issues the author overlooks. The handoff includes the evidence boundary, verification scope, source and tool restrictions, and access to the originals, alongside the draft, ledger, mode, and date. The author's rationale and expected verdict are excluded. When an independent reviewer is unavailable, a dedicated adversarial pass is still useful, but it should be described as a self-review. An automated validator never substitutes for inspecting evidence.
+
+After corrections, recheck the affected claims and obtain additional support within the permitted scope when needed. Repeating the full research stage is reserved for corrections that change the central conclusion.
 
 ## Source boundaries
 

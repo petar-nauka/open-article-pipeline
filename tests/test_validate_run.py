@@ -61,6 +61,95 @@ class ValidateRunTests(unittest.TestCase):
             errors, _ = MODULE.validate(root)
             self.assertIn("Missing file: verification-report.md", errors)
 
+    def test_inline_citation_labels_are_not_placeholders(self) -> None:
+        citations = (
+            "[source](https://example.org/sample)",
+            "[източник](https://example.org/sample)",
+            '[Source](https://example.org/sample "Sample statement")',
+            "[източник](<sample statement.md>)",
+            "[source](https://example.org/Report_(2026))",
+            "[източник](https://example.org/Report_(part_(2026)))",
+            '[source](https://example.org/Report_(2026) "Annual report")',
+            r"[source](https://example.org/Report_\(2026\))",
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_run(root)
+            for citation in citations:
+                with self.subTest(citation=citation):
+                    (root / "final.md").write_text(f"A statement was issued. {citation}\n", encoding="utf-8")
+                    errors, _ = MODULE.validate(root)
+                    self.assertEqual(errors, [])
+
+    def test_real_placeholders_near_citation_still_fail(self) -> None:
+        placeholders = (
+            "[source]", "[източник]", "[citation needed]", "[insert date]",
+            "[за проверка]", "[автор]", "[дата]", "TODO", "TBD", "XXXX",
+            "[source](", "[източник](https://example.org/unfinished",
+            "[source](https://example.org/Report_(2026)",
+            "[source](https://example.org/Report_(2026",
+            "[източник](https://example.org/Report_(part_(2026))",
+            '[source](https://example.org/Report_(2026) "Annual report"',
+            "[source]()", "[source](please insert actual url)",
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_run(root)
+            for placeholder in placeholders:
+                with self.subTest(placeholder=placeholder):
+                    (root / "final.md").write_text(
+                        f"[source](https://example.org/sample) {placeholder}\n", encoding="utf-8",
+                    )
+                    errors, _ = MODULE.validate(root)
+                    self.assertIn("Final article contains an unfinished placeholder", errors)
+
+    def test_escaped_pipes_in_source_and_claim_cells_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_run(root)
+            ledger = root / "evidence-ledger.md"
+            text = ledger.read_text(encoding="utf-8")
+            text = text.replace("Sample statement", r"Research \| Annual statement")
+            text = text.replace("A statement was issued", r"A statement \| update was issued")
+            text = text.replace("Self-reported", r"Self-reported \|")
+            ledger.write_text(text, encoding="utf-8")
+            errors, warnings = MODULE.validate(root)
+            self.assertEqual(errors, [])
+            self.assertEqual(warnings, [])
+
+    def test_unescaped_extra_pipe_still_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_run(root)
+            ledger = root / "evidence-ledger.md"
+            ledger.write_text(
+                ledger.read_text(encoding="utf-8").replace("Sample statement", "Research | Annual statement"),
+                encoding="utf-8",
+            )
+            errors, _ = MODULE.validate(root)
+            self.assertIn("Evidence ledger: 'Sources' row 1 has 7 cells, expected 6", errors)
+
+    def test_malformed_table_separator_fails(self) -> None:
+        valid_separator = "| --- | --- | --- | --- | --- | --- |"
+        invalid_separators = (
+            "| --- | --- | -- | --- | --- | --- |",
+            "| --- | --- | --- | --- | --- |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
+            r"| --- | --- | ---\|--- | --- | --- | --- |",
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for separator in invalid_separators:
+                with self.subTest(separator=separator):
+                    self.make_run(root)
+                    ledger = root / "evidence-ledger.md"
+                    ledger.write_text(
+                        ledger.read_text(encoding="utf-8").replace(valid_separator, separator, 1),
+                        encoding="utf-8",
+                    )
+                    errors, _ = MODULE.validate(root)
+                    self.assertIn("Evidence ledger: invalid 'Sources' table separator", errors)
+
 
 if __name__ == "__main__":
     unittest.main()
